@@ -93,8 +93,6 @@ func main() {
 		}
 	}
 
-	log = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
-
 	pflag.Parse()
 
 	if help {
