@@ -51,7 +51,6 @@ var (
 	ignoreCertValidity bool
 	help               bool
 	continuous         bool
-	verbose            bool
 	duration           time.Duration
 	frequency          time.Duration
 	clientFrequency    time.Duration
@@ -105,10 +104,6 @@ func main() {
 	options := buildOptions()
 
 	client := redis.NewClient(options)
-
-	if verbose {
-		log = log.Level(zerolog.DebugLevel)
-	}
 
 	err = client.Ping(context.Background()).Err()
 	if err != nil {
@@ -376,7 +371,6 @@ func init() {
 	pflag.StringVarP(&address, "address", "a", "localhost:6379", "redis host name:port")
 	pflag.BoolVarP(&ignoreCertValidity, "skip", "S", false, "do not verify certificates")
 	pflag.BoolVarP(&secure, "secure", "s", false, "use TLS to connect to redis")
-	pflag.BoolVarP(&verbose, "verbose", "v", false, "generate a message on every key event")
 
 	pflag.StringVarP(&caPath, "capath", "A", "", "path to CA certificate (defaults to redis cloud cert if none provided)")
 	pflag.StringVarP(&clientCertPath, "cert", "C", "", "path to client certificate")
