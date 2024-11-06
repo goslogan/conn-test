@@ -188,11 +188,14 @@ func handleRun(ctx context.Context, client *redis.Client, quit chan struct{}) {
 
 		switch command {
 		case 1:
-			err = client.Set(ctx, curkey+":set", id, 0).Err()
+			err = client.Set(ctx, curkey+":set", id, time.Minute*20).Err()
 		case 2:
 			err = client.Get(ctx, curkey+":set").Err()
 		case 3:
 			err = client.HSet(ctx, curkey+":hash", "id", id).Err()
+			if err == nil {
+				err = client.Expire(ctx, curkey+"hash", time.Minute*20).Err()
+			}
 		case 4:
 			err = client.HGet(ctx, curkey+":hash", "id").Err()
 		case 5:
