@@ -269,6 +269,12 @@ func buildOptions() *redis.Options {
 		if err != nil {
 			log.Fatal().Err(err).Msg("invalid redis URL")
 		}
+		if options.Password == "" {
+			options.Password = password
+		}
+		if options.Username == "" {
+			options.Username = user
+		}
 	} else {
 		options = &redis.Options{}
 		options.Addr = address
