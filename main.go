@@ -187,9 +187,9 @@ func handleRun(ctx context.Context, client *redis.Client, quit chan struct{}) {
 		case 4:
 			err = client.HGet(ctx, curkey+":hash", "id").Err()
 		case 5:
-			err = client.HSet(ctx, "testhash", curkey, id).Err()
+			err = client.HSet(ctx, "testhash"+curkey, curkey, id).Err()
 		case 6:
-			err = client.HGetAll(ctx, "testhash").Err()
+			err = client.HGetAll(ctx, "testhash"+curkey).Err()
 		case 7:
 			err = client.LLen(ctx, "clientruns").Err()
 		case 8:
