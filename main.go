@@ -40,6 +40,7 @@ import (
 	"os"
 	"os/signal"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -69,6 +70,7 @@ var (
 	count              int
 	poolSize           int
 	logfile            string
+	counter            atomic.Uint64
 )
 
 var minFrequency = 10 * time.Millisecond
@@ -163,6 +165,10 @@ func runMonitor(ctx context.Context, client *redis.Client) {
 
 func handleRun(ctx context.Context, client *redis.Client, quit chan struct{}) {
 
+	c := counter.Add(1)
+
+	start := time.Now()
+
 	id, err := client.ClientID(ctx).Result()
 	if err != nil {
 		log.Error().Err(err).Msg("unable to get client id")
@@ -170,14 +176,9 @@ func handleRun(ctx context.Context, client *redis.Client, quit chan struct{}) {
 		return
 	}
 
-	keybase := fmt.Sprintf("%d:%d", id, time.Now().Unix())
+	log.Info().Uint64("run-no", c).Time("start", start).Str("state", "starting").Send()
 
-	_, err = client.RPush(ctx, "clientruns", keybase).Result()
-	if err != nil {
-		log.Error().Err(err).Msg("unable to store run info")
-		quit <- struct{}{}
-		return
-	}
+	keybase := fmt.Sprintf("%d:%d", id, time.Now().Unix())
 
 	for idx := 1; idx <= count; idx++ {
 
@@ -195,11 +196,11 @@ func handleRun(ctx context.Context, client *redis.Client, quit chan struct{}) {
 		case 4:
 			err = client.HGet(ctx, curkey+":hash", "id").Err()
 		case 5:
-			err = client.HSet(ctx, "testhash"+curkey, curkey, id).Err()
+			err = client.RPush(ctx, "testlist", keybase).Err()
 		case 6:
-			err = client.HGetAll(ctx, "testhash"+curkey).Err()
+			err = client.LPop(ctx, "testlist").Err()
 		case 7:
-			err = client.LLen(ctx, "clientruns").Err()
+			err = client.LLen(ctx, "testlist").Err()
 		case 8:
 			err = client.ZAdd(ctx, "testsorted", redis.Z{
 				Score:  float64(time.Now().Unix()),
@@ -214,7 +215,10 @@ func handleRun(ctx context.Context, client *redis.Client, quit chan struct{}) {
 		if err != nil && err != redis.Nil {
 			log.Warn().Err(err).Int("index", idx).Str("curkey", curkey).Msg("unable to execute command")
 		}
+
 	}
+
+	log.Info().Uint64("run-no", c).Time("start", start).Time("end", time.Now()).Str("state", "finished").Send()
 
 }
 
