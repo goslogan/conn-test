@@ -82,22 +82,30 @@ func main() {
 
 	log = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
 
-	if logfile != "" {
-		var fh *os.File
-		fh, err = os.OpenFile(logfile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o755)
-		if err != nil {
-			log.Fatal().Err(err).Msg("unable to open log file")
-		} else {
-			log = zerolog.New(fh).With().Timestamp().Logger()
-		}
-	}
-
 	pflag.Parse()
 
 	if help {
 		fmt.Fprintf(os.Stderr, "\n%s: Usage\n", os.Args[0])
 		pflag.PrintDefaults()
 		os.Exit(0)
+	}
+
+	if logfile != "" {
+		var fh *os.File
+
+		if strings.ToLower(logfile) == "stderr" {
+			fh = os.Stderr
+		} else if strings.ToLower(logfile) == "stdout" {
+			fh = os.Stdout
+		} else {
+			fh, err = os.OpenFile(logfile, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0o755)
+		}
+
+		if err != nil {
+			log.Fatal().Err(err).Msg("unable to open log file")
+		} else {
+			log = zerolog.New(fh).With().Timestamp().Logger()
+		}
 	}
 
 	checkFlags()
@@ -393,5 +401,5 @@ func init() {
 
 	pflag.CommandLine.MarkHidden("skip")
 
-	pflag.StringVarP(&logfile, "logfile", "l", "", "logfile (default stderr)")
+	pflag.StringVarP(&logfile, "logfile", "l", "", "logfile (default console), set to 'stderr' or 'stdout' to log those")
 }
