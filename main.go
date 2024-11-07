@@ -297,6 +297,10 @@ func buildOptions() *redis.Options {
 		options.Username = user
 	}
 
+	options.MaxActiveConns = 500
+	options.ContextTimeoutEnabled = true
+	options.PoolTimeout = time.Second * 10
+
 	if poolSize != 0 {
 		options.PoolSize = poolSize
 	}
