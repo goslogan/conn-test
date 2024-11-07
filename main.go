@@ -46,6 +46,8 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/rs/zerolog"
 	"github.com/spf13/pflag"
+
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -135,6 +137,9 @@ func runMonitor(ctx context.Context, client *redis.Client) {
 	runTicker := time.NewTicker(frequency)
 	clientTicker := time.NewTicker(clientFrequency)
 
+	grp := new(errgroup.Group)
+	grp.SetLimit(5 * client.Options().PoolSize)
+
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt)
 
@@ -148,8 +153,11 @@ func runMonitor(ctx context.Context, client *redis.Client) {
 		case <-ctx.Done():
 			return
 		case <-runTicker.C:
-			runCount++
-			go handleRun(ctx, client)
+			grp.TryGo(func() error {
+				runCount++
+				handleRun(ctx, client)
+				return nil
+			})
 		case <-clientTicker.C:
 			go handleClients(ctx, client, runCount)
 		case <-sigchan:
@@ -171,8 +179,6 @@ func handleRun(ctx context.Context, client *redis.Client) {
 		log.Warn().Err(err).Msg("unable to get client id")
 		return
 	}
-
-	log.Info().Uint64("run-no", c).Time("start", start).Str("state", "starting").Send()
 
 	keybase := fmt.Sprintf("%d:%d", id, time.Now().Unix())
 
@@ -217,7 +223,7 @@ func handleRun(ctx context.Context, client *redis.Client) {
 
 	}
 
-	log.Info().Uint64("run-no", c).Time("start", start).Time("end", time.Now()).Str("state", "finished").Send()
+	log.Info().Uint64("run-no", c).Time("start", start).Time("end", time.Now()).Send()
 
 }
 
@@ -406,6 +412,5 @@ func init() {
 	pflag.IntVarP(&poolSize, "pool-size", "P", 0, "pool size - zero sets the default")
 
 	pflag.CommandLine.MarkHidden("skip")
-
 	pflag.StringVarP(&logfile, "logfile", "l", "", "logfile (default console), set to 'stderr' or 'stdout' to log those")
 }
