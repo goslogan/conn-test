@@ -134,14 +134,13 @@ func runMonitor(ctx context.Context, client *redis.Client) {
 
 	runTicker := time.NewTicker(frequency)
 	clientTicker := time.NewTicker(clientFrequency)
-	quit := make(chan struct{})
 
 	sigchan := make(chan os.Signal, 1)
 	signal.Notify(sigchan, os.Interrupt)
 
 	runCount := 0
 
-	handleClients(ctx, client, 0, quit)
+	handleClients(ctx, client, 0)
 
 	for {
 		select {
@@ -150,20 +149,18 @@ func runMonitor(ctx context.Context, client *redis.Client) {
 			return
 		case <-runTicker.C:
 			runCount++
-			go handleRun(ctx, client, quit)
+			go handleRun(ctx, client)
 		case <-clientTicker.C:
-			go handleClients(ctx, client, runCount, quit)
+			go handleClients(ctx, client, runCount)
 		case <-sigchan:
 			log.Info().Msg("terminated by user")
-			return
-		case <-quit:
 			return
 		}
 	}
 
 }
 
-func handleRun(ctx context.Context, client *redis.Client, quit chan struct{}) {
+func handleRun(ctx context.Context, client *redis.Client) {
 
 	c := counter.Add(1)
 
@@ -171,8 +168,7 @@ func handleRun(ctx context.Context, client *redis.Client, quit chan struct{}) {
 
 	id, err := client.ClientID(ctx).Result()
 	if err != nil {
-		log.Error().Err(err).Msg("unable to get client id")
-		quit <- struct{}{}
+		log.Warn().Err(err).Msg("unable to get client id")
 		return
 	}
 
@@ -225,12 +221,11 @@ func handleRun(ctx context.Context, client *redis.Client, quit chan struct{}) {
 
 }
 
-func handleClients(ctx context.Context, client *redis.Client, count int, quit chan struct{}) {
+func handleClients(ctx context.Context, client *redis.Client, count int) {
 	clientList, err := client.ClientList(ctx).Result()
 
 	if err != nil {
-		log.Error().Err(err).Msg("unable to get client list")
-		quit <- struct{}{}
+		log.Warn().Err(err).Msg("unable to get client list")
 		return
 	}
 
