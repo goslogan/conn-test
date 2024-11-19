@@ -11,10 +11,7 @@
             "mode": "auto",
             "program": "${fileDirname}",
             "args":[
-                "--url=redis://redis-14564.c34767.us-east-1-2.ec2.cloud.rlrcp.com:14564",
-                "--password=FNGC0HDOKim3lYGBUChQIEgQswzTJECE",
-                "--continuous",
-                "--logfile=test.log"
+                "--continuous"
             ]
         }
     ]

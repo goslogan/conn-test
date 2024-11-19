@@ -15,4 +15,5 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/rs/zerolog v1.33.0
 	github.com/spf13/pflag v1.0.5
+	golang.org/x/sync v0.8.0
 )
