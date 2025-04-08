@@ -73,6 +73,7 @@ var (
 	poolSize           int
 	logfile            string
 	counter            atomic.Uint64
+	verbose            bool
 )
 
 var minFrequency = 10 * time.Millisecond
@@ -84,6 +85,7 @@ func main() {
 
 	var err error
 
+	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	log = zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
 
 	pflag.Parse()
@@ -114,6 +116,10 @@ func main() {
 
 	checkFlags()
 	options := buildOptions()
+
+	if verbose {
+		log = log.Level(zerolog.DebugLevel)
+	}
 
 	client := redis.NewClient(options)
 
@@ -223,7 +229,7 @@ func handleRun(ctx context.Context, client *redis.Client) {
 
 	}
 
-	log.Info().Uint64("run-no", c).Time("start", start).Time("end", time.Now()).Send()
+	log.Debug().Uint64("run-no", c).Time("start", start).Time("end", time.Now()).Send()
 
 }
 
@@ -390,6 +396,7 @@ func checkFlags() {
 }
 
 func init() {
+	pflag.BoolVarP(&verbose, "verbose", "v", false, "enable verbose output")
 	pflag.BoolVarP(&help, "help", "h", false, "print the usage message")
 	pflag.DurationVarP(&duration, "duration", "d", time.Duration(10*time.Minute), "duration of testing")
 	pflag.BoolVarP(&continuous, "continuous", "c", false, "run forever (until killed) - runs without a timeout")
